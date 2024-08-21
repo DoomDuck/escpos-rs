@@ -22,7 +22,7 @@ use std::{
 };
 
 // #[cfg(target_os = "windows")]
-mod windows;
+pub mod windows;
 
 /// Default timeout in seconds for read/write operations
 const DEFAULT_TIMEOUT_SECONDS: u64 = 5;

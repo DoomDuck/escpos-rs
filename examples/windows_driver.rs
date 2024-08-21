@@ -1,4 +1,4 @@
-use escpos::driver::windows_driver::{WindowsDriver, WindowsPrinter};
+use escpos::driver::windows::{WindowsDriver, WindowsPrinter};
 use escpos::driver::*;
 use escpos::errors::Result;
 use escpos::printer::Printer;
