@@ -68,7 +68,18 @@ impl WindowsDriver {
                 };
 
                 if StartDocPrinterW(printer_handle, 1, &document_info) == 0 {
-                    error = Some(PrinterError::Io("Failed to start doc".to_owned()));
+                    let mut message_buffer = [0; 0x1_000];
+                    let message_len = FormatMessageW(
+                        FORMAT_MESSAGE_FROM_SYSTEM,
+                        None,
+                        GetLastError().0,
+                        0,
+                        PWSTR(message_buffer.as_mut_ptr()),
+                        message_buffer.len() as _,
+                        None,
+                    ) as usize;
+                    let message = String::from_utf16_lossy(&message_buffer[..message_len]);
+                    error = Some(PrinterError::Io(format!("Failed to start doc: {message}")));
                     break;
                 }
                 is_doc_start = true;
