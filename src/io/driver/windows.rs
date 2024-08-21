@@ -1,17 +1,17 @@
 mod windows_printer;
 
-use std::{cell::RefCell, ffi::c_void, rc::Rc};
+use std::{cell::RefCell, ffi::c_void};
 
 pub use self::windows_printer::WindowsPrinter;
 use crate::errors::{PrinterError, Result};
 use windows::{
     core::{w, PWSTR},
     Win32::{
-        Foundation::HANDLE,
+        Foundation::{GetLastError, HANDLE},
         Graphics::Printing::{
             ClosePrinter, EndDocPrinter, EndPagePrinter, OpenPrinterW, StartDocPrinterW, StartPagePrinter,
             WritePrinter, DOC_INFO_1W,
-        },
+        }, System::Diagnostics::Debug::{FormatMessageW, FORMAT_MESSAGE_FROM_SYSTEM},
     },
 };
 
@@ -20,15 +20,14 @@ use super::Driver;
 #[derive(Debug)]
 pub struct WindowsDriver {
     printer_name: Vec<u16>,
-    // TODO: Remove Rc
-    buffer: Rc<RefCell<Vec<u8>>>,
+    buffer: RefCell<Vec<u8>>,
 }
 
 impl WindowsDriver {
     pub fn open(printer: &WindowsPrinter) -> Result<WindowsDriver> {
         Ok(Self {
             printer_name: printer.get_raw_vec().clone(),
-            buffer: Rc::new(RefCell::new(Vec::new())),
+            buffer: RefCell::new(Vec::new()),
         })
     }
 
@@ -46,7 +45,18 @@ impl WindowsDriver {
                 let mut printer_name = self.printer_name.clone();
                 let printer_name_ptr = PWSTR(printer_name.as_mut_ptr());
                 if OpenPrinterW(printer_name_ptr, &mut printer_handle, None).is_err() {
-                    error = Some(PrinterError::Io("Failed to open printer".to_owned()));
+                    let mut message_buffer = [0; 0x1_000];
+                    let message_len = FormatMessageW(
+                        FORMAT_MESSAGE_FROM_SYSTEM,
+                        None,
+                        GetLastError().0,
+                        0,
+                        PWSTR(message_buffer.as_mut_ptr()),
+                        message_buffer.len() as _,
+                        None,
+                    ) as usize;
+                    let message = String::from_utf16_lossy(&message_buffer[..message_len]);
+                    error = Some(PrinterError::Io(format!("Failed to open printer: {message}")));
                     break;
                 }
                 is_printer_start = true;
