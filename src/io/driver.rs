@@ -21,6 +21,9 @@ use std::{
     time::Duration,
 };
 
+// #[cfg(target_os = "windows")]
+mod windows;
+
 /// Default timeout in seconds for read/write operations
 const DEFAULT_TIMEOUT_SECONDS: u64 = 5;
 
