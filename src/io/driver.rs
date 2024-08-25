@@ -21,7 +21,7 @@ use std::{
     time::Duration,
 };
 
-// #[cfg(target_os = "windows")]
+#[cfg(target_os = "windows")]
 pub mod windows;
 
 /// Default timeout in seconds for read/write operations
