@@ -151,7 +151,7 @@
 //     }
 // }
 
-use std::{cell::RefCell, ffi::c_void, rc::Rc};
+use std::{cell::{Cell, RefCell}, ffi::c_void};
 
 pub use self::windows_printer::WindowsPrinter;
 use crate::errors::{PrinterError, Result};
@@ -160,8 +160,7 @@ use windows::{
     Win32::{
         Foundation::{BOOL, HANDLE},
         Graphics::Printing::{
-            ClosePrinter, EndDocPrinter, EndPagePrinter, OpenPrinterW, StartDocPrinterW, StartPagePrinter,
-            WritePrinter, DOC_INFO_1W,
+            ClosePrinter, EndDocPrinter, EndPagePrinter, OpenPrinterW, StartDocPrinterW, StartPagePrinter, WritePrinter, DOCUMENTEVENT_ABORTDOC, DOC_INFO_1W
         },
     },
 };
@@ -173,6 +172,7 @@ mod windows_printer;
 
 #[derive(Debug)]
 pub struct WindowsDriver {
+    print_count: Cell<usize>,
     printer_name: Vec<u16>,
     buffer: RefCell<Vec<u8>>,
 }
@@ -180,6 +180,7 @@ pub struct WindowsDriver {
 impl WindowsDriver {
     pub fn open(printer: &WindowsPrinter) -> Result<WindowsDriver> {
         Ok(Self {
+            print_count: Cell::new(0),
             printer_name: printer.get_raw_vec().clone(),
             buffer: RefCell::new(Vec::new()),
         })
@@ -201,9 +202,12 @@ impl WindowsDriver {
                 eprintln!("Error: {:?}", error);
             } else {
                 is_printer_open = true;
+                let document_name = format!("Raw document #{}", self.print_count.get());
+                self.print_count.set(self.print_count.get() + 1);
+                let document_name_wide: Vec<_> = document_name.encode_utf16().chain([0, 0]).collect();
                 // Start the document
                 let document_info = DOC_INFO_1W {
-                    pDocName: PWSTR(w!("Raw Document").as_wide().as_ptr() as *mut _),
+                    pDocName: PWSTR(document_name_wide.as_ptr() as *mut _),
                     pOutputFile: PWSTR::null(),
                     pDatatype: PWSTR(w!("Raw").as_wide().as_ptr() as *mut _),
                 };
