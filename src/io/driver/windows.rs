@@ -204,7 +204,7 @@ impl WindowsDriver {
                 is_printer_open = true;
                 let document_name = format!("Raw document #{}", self.print_count.get());
                 self.print_count.set(self.print_count.get() + 1);
-                let document_name_wide: Vec<_> = document_name.encode_utf16().chain([0, 0]).collect();
+                let document_name_wide: Vec<_> = document_name.encode_utf16().chain([0]).collect();
                 // Start the document
                 let document_info = DOC_INFO_1W {
                     pDocName: PWSTR(document_name_wide.as_ptr() as *mut _),
@@ -217,12 +217,12 @@ impl WindowsDriver {
                     eprintln!("Error: {:?}", error);
                 } else {
                     is_doc_started = true;
-                    // Start the page
-                    if !StartPagePrinter(printer_handle).as_bool() {
-                        error = Some(PrinterError::Io("Failed to start page".to_owned()));
-                        eprintln!("Error: {:?}", error);
-                    } else {
-                        is_page_started = true;
+                    // // Start the page
+                    // if !StartPagePrinter(printer_handle).as_bool() {
+                    //     error = Some(PrinterError::Io("Failed to start page".to_owned()));
+                    //     eprintln!("Error: {:?}", error);
+                    // } else {
+                    //     is_page_started = true;
                         // Write to the printer
                         let buffer = self.buffer.borrow();
                         let mut written: u32 = 0;
@@ -240,18 +240,18 @@ impl WindowsDriver {
                             error = Some(PrinterError::Io("Failed to write all bytes to printer".to_owned()));
                             eprintln!("Error: {:?}", error);
                         }
-                    }
+                    // }
                 }
             }
         }
 
         // Clean up resources
         unsafe {
-            if is_page_started {
-                if EndPagePrinter(printer_handle) == BOOL(0) {
-                    eprintln!("Warning: Failed to end page");
-                }
-            }
+            // if is_page_started {
+            //     if EndPagePrinter(printer_handle) == BOOL(0) {
+            //         eprintln!("Warning: Failed to end page");
+            //     }
+            // }
             if is_doc_started {
                 if EndDocPrinter(printer_handle) == BOOL(0) {
                     eprintln!("Warning: Failed to end document");
