@@ -217,12 +217,12 @@ impl WindowsDriver {
                     eprintln!("Error: {:?}", error);
                 } else {
                     is_doc_started = true;
-                    // // Start the page
-                    // if !StartPagePrinter(printer_handle).as_bool() {
-                    //     error = Some(PrinterError::Io("Failed to start page".to_owned()));
-                    //     eprintln!("Error: {:?}", error);
-                    // } else {
-                    //     is_page_started = true;
+                    // Start the page
+                    if !StartPagePrinter(printer_handle).as_bool() {
+                        error = Some(PrinterError::Io("Failed to start page".to_owned()));
+                        eprintln!("Error: {:?}", error);
+                    } else {
+                        is_page_started = true;
                         // Write to the printer
                         let buffer = self.buffer.borrow();
                         let mut written: u32 = 0;
@@ -240,18 +240,18 @@ impl WindowsDriver {
                             error = Some(PrinterError::Io("Failed to write all bytes to printer".to_owned()));
                             eprintln!("Error: {:?}", error);
                         }
-                    // }
+                    }
                 }
             }
         }
 
         // Clean up resources
         unsafe {
-            // if is_page_started {
-            //     if EndPagePrinter(printer_handle) == BOOL(0) {
-            //         eprintln!("Warning: Failed to end page");
-            //     }
-            // }
+            if is_page_started {
+                if EndPagePrinter(printer_handle) == BOOL(0) {
+                    eprintln!("Warning: Failed to end page");
+                }
+            }
             if is_doc_started {
                 if EndDocPrinter(printer_handle) == BOOL(0) {
                     eprintln!("Warning: Failed to end document");
@@ -263,6 +263,9 @@ impl WindowsDriver {
                 }
             }
         }
+
+        // Empty buffer
+        self.buffer.borrow_mut().drain(0..);
 
         // Return result
         if let Some(err) = error {
